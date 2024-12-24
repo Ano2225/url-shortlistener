@@ -97,7 +97,7 @@ Ce projet est sous licence MIT.
 
 ## 👥 Auteur
 
-- OUATTARA Arouna - *Travail initial* - [VotreGitHub](https://github.com/Ano2225)
+- OUATTARA Arouna - (Young_Geek)
 
 ## 📞 Contact
 
