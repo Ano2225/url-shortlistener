@@ -151,13 +151,6 @@ Contributions are welcome! Follow these steps:
    ```
 5. Open a Pull Request
 
-## 🔒 Security Considerations
-
-- Use HTTPS
-- Implement rate limiting
-- Sanitize and validate all inputs
-- Use secure MongoDB connection
-- Protect against common web vulnerabilities
 
 ## 📄 License
 
