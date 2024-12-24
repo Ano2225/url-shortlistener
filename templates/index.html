@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-200 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-lg">
+        <header class="text-center mb-8">
+            <i class="fas fa-link text-3xl text-orange-500 mb-3"></i>
+            <h1 class="text-2xl font-bold text-gray-900">URL Shortener</h1>
+            <p class="text-gray-600 mt-2 text-sm">
+              Raccourcissez et partagez vos liens simplement.
+          </p>
+        </header>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-lg shadow p-4 md:p-6">
+            <form id="shortenerForm" class="space-y-4">
+                <div>
+                    <input type="url" 
+                           id="urlInput" 
+                           required
+                           class="w-full p-3 border border-gray-200 rounded-lg"
+                           placeholder="Collez votre URL ici">
+                </div>
+
+                <button type="button" 
+                        id="toggleOptions"
+                        class="text-sm text-gray-600 flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i>
+                    Plus d'options
+                </button>
+
+                <!-- Options Avancées -->
+                <div id="advancedOptions" class="hidden space-y-4 border-t border-gray-100 pt-4">
+                    <!-- URL Personnalisée -->
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">URL personnalisée</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                                url.sh/
+                            </span>
+                            <input type="text" 
+                                   id="customCode"
+                                   class="w-full pl-16 p-3 border border-gray-200 rounded-lg text-sm"
+                                   placeholder="mon-lien">
+                        </div>
+                    </div>
+
+                    <!-- Protection -->
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">Protection</label>
+                        <input type="password" 
+                               id="password"
+                               class="w-full p-3 border border-gray-200 rounded-lg text-sm"
+                               placeholder="Mot de passe (optionnel)">
+                    </div>
+
+                    <!-- Expiration -->
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">Expiration</label>
+                        <input type="datetime-local" 
+                               id="expirationDate"
+                               class="w-full p-3 border border-gray-200 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <button type="submit" 
+                        class="w-full bg-orange-500 text-white p-3 rounded-lg font-medium hover:bg-orange-600 
+                               transition-colors flex items-center justify-center gap-2">
+                    <span id="buttonText">Raccourcir</span>
+                </button>
+            </form>
+            <div id="resultSection" class="hidden mt-6 space-y-4">
+                <div class="p-2 bg-gray-100 shadow rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <a id="shortUrl" href="#" target="_blank"
+                           class="text-orange-600 font-medium break-all"></a>
+                        <button onclick="copyToClipboard()" 
+                                class="ml-3 p-2 hover:bg-gray-100 rounded">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Code (si nécessaire) -->
+                <div id="qrSection" class="text-center">
+                    <img id="qrCode" alt="QR Code" class="mx-auto max-w-[150px]">
+                    <button onclick="downloadQR()" 
+                            class="text-sm text-orange-500 mt-2">
+                        <i class="fas fa-download mr-1"></i>
+                        QR Code
+                    </button>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <div class="text-center mt-8 pt-8 border-t border-gray-200">
+              <p class="text-sm text-gray-600">
+                  © 2024 URLShort. Tous droits réservés.
+              </p>
+          </div>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('toggleOptions').addEventListener('click', () => {
+            const options = document.getElementById('advancedOptions');
+            const button = document.getElementById('toggleOptions');
+            options.classList.toggle('hidden');
+            button.innerHTML = options.classList.contains('hidden') 
+                ? '<i class="fas fa-plus-circle"></i> Plus d\'options'
+                : '<i class="fas fa-minus-circle"></i> Moins d\'options';
+        });
+
+        document.getElementById('shortenerForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const button = e.target.querySelector('button[type="submit"]');
+          const buttonText = document.getElementById('buttonText');
+          const resultSection = document.getElementById('resultSection');
+          
+          resultSection.classList.add('hidden');
+          const oldError = document.querySelector('.error-message');
+          if (oldError) oldError.remove();
+          
+          button.disabled = true;
+          buttonText.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      
+          try {
+              // Récupérer et valider l'URL
+              const urlInput = document.getElementById('urlInput').value.trim();
+              if (!urlInput) {
+                  throw new Error('Veuillez entrer une URL');
+              }
+      
+              const formData = {
+                  url: urlInput,
+                  customCode: document.getElementById('customCode')?.value.trim() || '',
+                  password: document.getElementById('password')?.value.trim() || '',
+                  expirationDate: document.getElementById('expirationDate')?.value || ''
+              };
+      
+              const response = await fetch('/shorten', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(formData)
+              });
+      
+              const data = await response.json();
+      
+              if (!response.ok) {
+                  throw new Error(data.error || 'Une erreur est survenue');
+              }
+      
+              // Vérifier que data.short_url existe
+              if (!data.short_url) {
+                  throw new Error('Erreur lors de la génération de l\'URL courte');
+              }
+      
+              resultSection.classList.remove('hidden');
+              const shortUrlElement = document.getElementById('shortUrl');
+              shortUrlElement.href = data.short_url;
+              shortUrlElement.textContent = data.short_url;
+      
+              const qrCodeElement = document.getElementById('qrCode');
+              const qrSection = document.getElementById('qrSection');
+              if (data.qr_code) {
+                  qrCodeElement.src = data.qr_code;
+                  qrSection.classList.remove('hidden');
+              } else {
+                  qrSection.classList.add('hidden');
+              }
+      
+              // Reset form
+              e.target.reset();
+              document.getElementById('advancedOptions').classList.add('hidden');
+              document.getElementById('toggleOptions').innerHTML = 
+                  '<i class="fas fa-plus-circle"></i> Plus d\'options';
+      
+          } catch (error) {
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'error-message bg-red-50 text-red-500 p-3 rounded-lg mt-4 flex items-center gap-2';
+              errorDiv.innerHTML = `
+                  <i class="fas fa-exclamation-circle"></i>
+                  <span>${error.message}</span>
+              `;
+              document.getElementById('shortenerForm').appendChild(errorDiv);
+              
+              resultSection.classList.add('hidden');
+          } finally {
+              button.disabled = false;
+              buttonText.innerHTML = 'Raccourcir';
+          }
+      });
+      
+      async function copyToClipboard() {
+          const url = document.getElementById('shortUrl').href;
+          const copyButton = document.querySelector('[onclick="copyToClipboard()"] i');
+          
+          try {
+              await navigator.clipboard.writeText(url);
+              copyButton.className = 'fas fa-check text-green-500';
+              
+              // Afficher une notification
+              const notification = document.createElement('div');
+              notification.className = 'fixed bottom-4 right-4 bg-green-400 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in';
+              notification.textContent = 'URL copiée !';
+              document.body.appendChild(notification);
+              
+              setTimeout(() => {
+                  copyButton.className = 'fas fa-copy';
+                  notification.remove();
+              }, 2000);
+          } catch (err) {
+              const notification = document.createElement('div');
+              notification.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg';
+              notification.textContent = 'Erreur lors de la copie';
+              document.body.appendChild(notification);
+              
+              setTimeout(() => notification.remove(), 2000);
+          }
+      }
+      
+      function downloadQR() {
+          const qrImage = document.getElementById('qrCode');
+          if (!qrImage.src || qrImage.src === window.location.href) {
+              return;
+          }
+      
+          const link = document.createElement('a');
+          link.href = qrImage.src;
+          link.download = `qr-code-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
+    </script>
+</body>
+</html>

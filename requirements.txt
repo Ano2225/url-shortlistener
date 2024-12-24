@@ -1,0 +1,6 @@
+flask
+pymongo
+qrcode
+Pillow
+python-dotenv
+dnspython
